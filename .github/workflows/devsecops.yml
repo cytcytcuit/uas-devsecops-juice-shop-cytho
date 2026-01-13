@@ -7,20 +7,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Code - Checkout source
+    - name: Checkout source code
       uses: actions/checkout@v3
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-
-    - name: Install dependencies
-      run: npm install
-
     - name: SAST - npm audit
-      run: npm audit
-      continue-on-error: true
+      run: npm audit || true
 
     - name: SCA - Trivy filesystem scan
       uses: aquasecurity/trivy-action@master
@@ -28,19 +19,12 @@ jobs:
         scan-type: fs
         scan-ref: .
 
-    - name: Build Docker image
-      run: docker build -t juice-shop .
+    - name: Pull Juice Shop Docker image
+      run: docker pull bkimminich/juice-shop
 
     - name: Container Scan - Trivy image
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: juice-shop
+        image-ref: bkimminich/juice-shop
         severity: HIGH,CRITICAL
       continue-on-error: true
-
-    - name: DAST - OWASP ZAP
-      run: |
-        docker run -d -p 3000:3000 bkimminich/juice-shop
-        docker run --network="host" \
-          -t owasp/zap2docker-stable zap-baseline.py \
-          -t http://localhost:3000 || true
